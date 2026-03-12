@@ -559,16 +559,35 @@ $('btn-auth-submit').onclick = async () => {
 
   if (isRegMode) {
     if (pw !== confirm) return showAuthErr("Passwords don't match.");
-    if (users[email]) return showAuthErr('Email already registered. Please sign in.');
+    if (users[email]) {
+      // Account exists - switch to login mode automatically
+      setAuthMode(false);
+      $('inp-password').value = '';
+      const el = $('auth-error');
+      el.textContent = '✅ Account already exists! Please sign in with your password.';
+      el.style.background = 'rgba(0,212,170,0.1)';
+      el.style.color = 'var(--teal)';
+      el.classList.remove('hidden');
+      return;
+    }
     const hash = await sha256(pw);
     users[email] = { hash, created: Date.now() };
     LS.set('sp_users', users);
     LS.set('sp_session', { email });
     loginUser(email);
   } else {
-    if (!users[email]) return showAuthErr('No account found. Please create one.');
+    if (!users[email]) {
+      // No account - switch to register mode automatically
+      setAuthMode(true);
+      const el = $('auth-error');
+      el.textContent = '👋 No account found! Please create one below.';
+      el.style.background = 'rgba(108,99,255,0.1)';
+      el.style.color = 'var(--accent-light)';
+      el.classList.remove('hidden');
+      return;
+    }
     const hash = await sha256(pw);
-    if (users[email].hash !== hash) return showAuthErr('Incorrect password.');
+    if (users[email].hash !== hash) return showAuthErr('❌ Incorrect password. Please try again.');
     LS.set('sp_session', { email });
     loginUser(email);
   }
@@ -582,6 +601,8 @@ $('btn-auth-submit').onclick = async () => {
 function showAuthErr(msg) {
   const el = $('auth-error');
   el.textContent = msg;
+  el.style.background = 'rgba(255,107,107,0.1)';
+  el.style.color = 'var(--coral)';
   el.classList.remove('hidden');
 }
 
@@ -598,12 +619,20 @@ function loginUser(email) {
 }
 
 $('btn-logout').onclick = () => {
+  const loggedOutEmail = currentUser;
   LS.set('sp_session', null);
   currentUser = null;
   tasks = []; goals = [];
   $('app-screen').style.display = 'none';
-  $('inp-email').value = ''; $('inp-password').value = ''; $('inp-confirm').value = '';
+  // Pre-fill email so user knows to just enter password
+  $('inp-email').value = loggedOutEmail;
+  $('inp-password').value = '';
+  $('inp-confirm').value = '';
   setAuthMode(false);
+  // Show helpful message
+  showAuthErr('✅ Logged out! Enter your password to sign back in.');
+  $('auth-error').style.background = 'rgba(0,212,170,0.1)';
+  $('auth-error').style.color = 'var(--teal)';
   $('auth-screen').style.display = 'flex';
 };
 
