@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyPlanner</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0D0F14; --surface: #141720; --card: #1B1F2E;
+      --accent: #6C63FF; --accent-light: #8B85FF; --accent-glow: rgba(108,99,255,0.15);
+      --teal: #00D4AA; --coral: #FF6B6B; --gold: #FFD166;
+      --text: #E8EAF6; --muted: #6B7280; --border: rgba(108,99,255,0.2);
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+    input, select, button { font-family: inherit; }
+    input[type=range] { accent-color: var(--teal); width: 100%; }
+    button { cursor: pointer; }
+    .hidden { display: none !important; }
+
+    /* ── Auth Screen ── */
+    #auth-screen {
+      min-height: 100vh; display: flex; align-items: center;
+      justify-content: center; padding: 20px;
+    }
+    .auth-wrap { width: 100%; max-width: 420px; }
+    .auth-logo {
+      text-align: center; margin-bottom: 36px;
+    }
+    .auth-logo-icon {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      border-radius: 18px; display: flex; align-items: center;
+      justify-content: center; margin: 0 auto 14px;
+    }
+    .auth-logo h1 {
+      font-family: 'Space Mono', monospace; font-size: 26px;
+      color: var(--text); font-weight: 700;
+    }
+    .auth-logo p { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    .auth-card {
+      background: var(--card); border-radius: 24px;
+      padding: 32px; border: 1px solid var(--border);
+    }
+    .auth-card h2 { font-size: 20px; margin-bottom: 22px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 5px; font-weight: 700; letter-spacing: 0.5px; }
+    .field input {
+      width: 100%; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 12px;
+      color: var(--text); padding: 12px 14px; font-size: 14px; outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: var(--accent); }
+    .auth-error {
+      background: rgba(255,107,107,0.1); color: var(--coral);
+      border-radius: 8px; padding: 10px 14px; font-size: 13px;
+      margin-bottom: 14px;
+    }
+    .btn-primary {
+      width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      color: #fff; border: none; border-radius: 14px;
+      padding: 14px; font-weight: 700; font-size: 15px;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .auth-switch { text-align: center; margin-top: 18px; color: var(--muted); font-size: 13px; }
+    .auth-switch span { color: var(--accent); cursor: pointer; font-weight: 600; }
+
+    /* ── Nav ── */
+    #navbar {
+      border-bottom: 1px solid var(--border); background: var(--surface);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-inner {
+      max-width: 960px; margin: 0 auto; padding: 0 20px;
+      display: flex; align-items: center; height: 60px; gap: 16px;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .nav-brand-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    }
+    .nav-brand span { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 15px; }
+    .nav-tabs { display: flex; gap: 4px; margin-left: 20px; }
+    .nav-tab {
+      display: flex; align-items: center; gap: 6px;
+      background: transparent; color: var(--muted);
+      border: none; border-radius: 10px; padding: 7px 14px;
+      font-weight: 400; font-size: 13px; transition: all 0.2s;
+    }
+    .nav-tab.active { background: var(--accent-glow); color: var(--accent); font-weight: 700; }
+    .nav-user {
+      margin-left: auto; display: flex; align-items: center; gap: 10px;
+    }
+    .user-badge {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--accent-glow); border-radius: 10px; padding: 6px 12px;
+    }
+    .user-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #fff;
+    }
+    .user-email { font-size: 12px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn-logout {
+      background: none; border: 1px solid var(--border);
+      border-radius: 10px; padding: 7px 10px; color: var(--muted);
+      transition: color 0.2s;
+    }
+    .btn-logout:hover { color: var(--coral); border-color: var(--coral); }
+
+    /* ── Main Layout ── */
+    #app-screen { display: none; }
+    .content { max-width: 960px; margin: 0 auto; padding: 28px 20px; }
+
+    /* ── Stats ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--card); border-radius: 16px;
+      padding: 20px; border: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .stat-card .val { font-family: 'Space Mono', monospace; font-size: 26px; font-weight: 700; }
+    .stat-card .lbl { font-size: 12px; color: var(--muted); }
+
+    /* ── Progress Bar ── */
+    .prog-card {
+      background: var(--card); border-radius: 16px;
+      padding: 16px 20px; border: 1px solid var(--border); margin-bottom: 22px;
+    }
+    .prog-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; font-weight: 600; }
+    .prog-track { height: 8px; background: var(--surface); border-radius: 99px; overflow: hidden; }
+    .prog-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--teal)); border-radius: 99px; transition: width 0.5s; }
+
+    /* ── Toolbar ── */
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+    .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter-btn {
+      background: var(--card); color: var(--muted); border: none;
+      border-radius: 10px; padding: 6px 14px; font-size: 12px; font-weight: 600; text-transform: capitalize;
+      transition: all 0.2s;
+    }
+    .filter-btn.active { background: var(--accent); color: #fff; }
+    .btn-add {
+      display: flex; align-items: center; gap: 8px;
+      border: none; border-radius: 12px; padding: 10px 18px;
+      color: #fff; font-weight: 700; font-size: 13px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    }
+    .btn-add-teal { background: linear-gradient(135deg, var(--teal), var(--accent)); }
+
+    /* ── Form Card ── */
+    .form-card {
+      background: var(--card); border-radius: 20px;
+      padding: 24px; margin-bottom: 20px;
+    }
+    .form-card h3 { font-size: 15px; margin-bottom: 16px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    @media(max-width: 500px) { .form-grid { grid-template-columns: 1fr; } }
+    .form-field label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px; font-weight: 700; letter-spacing: 0.5px; }
+    .form-field input, .form-field select {
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); padding: 10px 12px;
+      font-size: 13px; outline: none;
+    }
+    .form-field select option { background: var(--surface); }
+    .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+    .btn-cancel {
+      background: var(--surface); color: var(--muted); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 18px; font-size: 13px;
+    }
+    .btn-submit {
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 10px; padding: 10px 22px; font-weight: 700; font-size: 13px;
+    }
+    .btn-submit-teal { background: var(--teal); color: #000; }
+
+    /* ── Task List ── */
+    .task-list { display: flex; flex-direction: column; gap: 10px; }
+    .task-item {
+      background: var(--card); border-radius: 16px;
+      padding: 16px 20px; border: 1px solid var(--border);
+      display: flex; align-items: center; gap: 14px; transition: opacity 0.2s;
+    }
+    .task-item.done { opacity: 0.55; }
+    .task-check {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid var(--border); background: transparent;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.2s; color: #fff;
+    }
+    .task-check.checked { background: var(--teal); border-color: var(--teal); }
+    .task-body { flex: 1; min-width: 0; }
+    .task-subject { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .task-subject.done-text { text-decoration: line-through; color: var(--muted); }
+    .task-desc { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .task-date { font-size: 11px; color: var(--accent); margin-top: 4px; }
+    .btn-delete { background: none; border: none; padding: 6px; color: var(--coral); opacity: 0.7; }
+    .btn-delete:hover { opacity: 1; }
+
+    /* Priority Badge */
+    .badge { border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+    .badge-high { background: rgba(255,107,107,0.15); color: var(--coral); }
+    .badge-medium { background: rgba(255,209,102,0.15); color: var(--gold); }
+    .badge-low { background: rgba(0,212,170,0.15); color: var(--teal); }
+
+    /* ── Empty State ── */
+    .empty { text-align: center; padding: 48px 0; color: var(--muted); }
+    .empty svg { opacity: 0.25; }
+    .empty p { margin-top: 12px; font-size: 14px; }
+
+    /* ── Goals ── */
+    .goal-list { display: flex; flex-direction: column; gap: 14px; }
+    .goal-card {
+      background: var(--card); border-radius: 18px;
+      padding: 20px 24px; border: 1px solid var(--border);
+    }
+    .goal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .goal-title { font-weight: 700; font-size: 16px; }
+    .goal-target { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .goal-pct { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; color: var(--teal); }
+    .goal-track { height: 10px; background: var(--surface); border-radius: 99px; overflow: hidden; margin-bottom: 12px; }
+    .goal-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--accent)); border-radius: 99px; transition: width 0.4s; }
+    .goal-slider-row { display: flex; align-items: center; gap: 10px; }
+    .goal-slider-row span { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+    /* ── Pomodoro ── */
+    .pomo-card {
+      background: var(--card); border-radius: 20px;
+      padding: 28px; border: 1px solid var(--border); max-width: 480px; margin: 0 auto;
+    }
+    .pomo-header { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+    .pomo-header h2 { font-family: 'Space Mono', monospace; font-size: 17px; margin: 0; }
+    .pomo-session-badge {
+      margin-left: auto; background: var(--accent-glow); color: var(--accent);
+      border-radius: 8px; padding: 3px 10px; font-size: 12px;
+    }
+    .pomo-ring-wrap { display: flex; justify-content: center; margin-bottom: 24px; position: relative; }
+    .pomo-ring-wrap svg { display: block; }
+    .pomo-time-label {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .pomo-time { font-family: 'Space Mono', monospace; font-size: 36px; font-weight: 700; }
+    .pomo-mode { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .pomo-controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+    .btn-pomo-start {
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 12px; padding: 10px 28px; font-weight: 700; font-size: 14px;
+    }
+    .btn-pomo-start.pause { background: var(--coral); }
+    .btn-pomo-reset {
+      background: var(--surface); color: var(--muted);
+      border: 1px solid var(--border); border-radius: 12px; padding: 10px 18px; font-size: 13px;
+    }
+    .pomo-settings { display: flex; gap: 12px; }
+    .pomo-setting { flex: 1; }
+    .pomo-setting label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px; }
+    .pomo-setting input {
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); padding: 8px 10px; font-size: 14px; outline: none;
+    }
+    .pomo-tip {
+      background: var(--card); border-radius: 20px;
+      padding: 22px 24px; border: 1px solid var(--border);
+      margin-top: 18px; max-width: 480px; margin-left: auto; margin-right: auto;
+    }
+    .pomo-tip h3 { color: var(--accent); font-family: 'Space Mono', monospace; font-size: 14px; margin-bottom: 10px; }
+    .pomo-tip ul { padding-left: 18px; color: var(--muted); font-size: 13px; line-height: 2; }
+
+    /* ── Section Header ── */
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .section-header h2 { font-family: 'Space Mono', monospace; font-size: 19px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════ AUTH SCREEN ═══════════════════ -->
+<div id="auth-screen">
+  <div class="auth-wrap">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">
+        <svg width="28" height="28" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+      </div>
+      <h1>StudyPlanner</h1>
+      <p>Your personal academic companion</p>
+    </div>
+    <div class="auth-card">
+      <h2 id="auth-title">Welcome Back</h2>
+
+      <div class="field">
+        <label>EMAIL</label>
+        <input type="email" id="inp-email" placeholder="you@example.com" />
+      </div>
+      <div class="field">
+        <label>PASSWORD</label>
+        <input type="password" id="inp-password" placeholder="Password" />
+      </div>
+      <div class="field hidden" id="field-confirm">
+        <label>CONFIRM PASSWORD</label>
+        <input type="password" id="inp-confirm" placeholder="Confirm Password" />
+      </div>
+
+      <div class="auth-error hidden" id="auth-error"></div>
+
+      <button class="btn-primary" id="btn-auth-submit">Sign In</button>
+
+      <div class="auth-switch">
+        <span id="auth-mode-text">New here? </span>
+        <span id="auth-toggle">Create Account</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ APP SCREEN ═══════════════════ -->
+<div id="app-screen">
+
+  <!-- Nav -->
+  <div id="navbar">
+    <div class="nav-inner">
+      <div class="nav-brand">
+        <div class="nav-brand-icon">
+          <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+        </div>
+        <span>StudyPlanner</span>
+      </div>
+      <div class="nav-tabs">
+        <button class="nav-tab active" data-tab="tasks">📚 Tasks</button>
+        <button class="nav-tab" data-tab="goals">🎯 Goals</button>
+        <button class="nav-tab" data-tab="pomodoro">⏱ Timer</button>
+      </div>
+      <div class="nav-user">
+        <div class="user-badge">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <span class="user-email" id="user-email-display"></span>
+        </div>
+        <button class="btn-logout" id="btn-logout" title="Logout">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- ── TASKS TAB ── -->
+    <div id="tab-tasks">
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="prog-card">
+        <div class="prog-header">
+          <span>Overall Progress</span>
+          <span id="prog-pct" style="color:var(--teal);font-family:'Space Mono',monospace">0%</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="toolbar">
+        <div class="filters" id="filter-btns">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="pending">Pending</button>
+          <button class="filter-btn" data-filter="done">Done</button>
+          <button class="filter-btn" data-filter="high">🔴 High</button>
+        </div>
+        <button class="btn-add" id="btn-show-task-form">
+          <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Task
+        </button>
+      </div>
+
+      <!-- Task Form -->
+      <div class="form-card hidden" id="task-form" style="border:1px solid rgba(108,99,255,0.4)">
+        <h3 style="color:var(--accent)">New Study Task</h3>
+        <div class="form-grid">
+          <div class="form-field">
+            <label>SUBJECT *</label>
+            <input type="text" id="tf-subject" placeholder="e.g. Mathematics"/>
+          </div>
+          <div class="form-field">
+            <label>DUE DATE</label>
+            <input type="date" id="tf-date"/>
+          </div>
+        </div>
+        <div class="form-field">
+          <label>DESCRIPTION</label>
+          <input type="text" id="tf-desc" placeholder="What to study..."/>
+        </div>
+        <div class="form-field" style="margin-top:12px">
+          <label>PRIORITY</label>
+          <select id="tf-priority">
+            <option value="high">High</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button class="btn-cancel" id="btn-cancel-task">Cancel</button>
+          <button class="btn-submit" id="btn-save-task">Add Task</button>
+        </div>
+      </div>
+
+      <div class="task-list" id="task-list"></div>
+    </div>
+
+    <!-- ── GOALS TAB ── -->
+    <div id="tab-goals" class="hidden">
+      <div class="section-header">
+        <h2>Study Goals</h2>
+        <button class="btn-add btn-add-teal" id="btn-show-goal-form">
+          <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Goal
+        </button>
+      </div>
+
+      <!-- Goal Form -->
+      <div class="form-card hidden" id="goal-form" style="border:1px solid rgba(0,212,170,0.4)">
+        <h3 style="color:var(--teal)">New Goal</h3>
+        <div class="form-grid">
+          <div class="form-field">
+            <label>GOAL TITLE *</label>
+            <input type="text" id="gf-title" placeholder="e.g. Read 20 chapters"/>
+          </div>
+          <div class="form-field">
+            <label>TARGET / DEADLINE</label>
+            <input type="text" id="gf-target" placeholder="e.g. By Dec 2025"/>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-cancel" id="btn-cancel-goal">Cancel</button>
+          <button class="btn-submit btn-submit-teal" id="btn-save-goal">Add Goal</button>
+        </div>
+      </div>
+
+      <div class="goal-list" id="goal-list"></div>
+    </div>
+
+    <!-- ── POMODORO TAB ── -->
+    <div id="tab-pomodoro" class="hidden">
+      <div class="pomo-card">
+        <div class="pomo-header">
+          <svg width="20" height="20" fill="none" stroke="var(--accent)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <h2>Pomodoro Timer</h2>
+          <div class="pomo-session-badge">🔥 <span id="pomo-sessions">0</span> sessions</div>
+        </div>
+
+        <div class="pomo-ring-wrap">
+          <svg width="160" height="160">
+            <circle cx="80" cy="80" r="70" fill="none" stroke="var(--surface)" stroke-width="8"/>
+            <circle id="pomo-ring" cx="80" cy="80" r="70" fill="none" stroke="var(--accent)" stroke-width="8"
+              stroke-dasharray="439.82" stroke-dashoffset="439.82"
+              stroke-linecap="round" transform="rotate(-90 80 80)"
+              style="transition:stroke-dashoffset 0.5s"/>
+          </svg>
+          <div class="pomo-time-label">
+            <div class="pomo-time" id="pomo-display">25:00</div>
+            <div class="pomo-mode" id="pomo-mode">Focus</div>
+          </div>
+        </div>
+
+        <div class="pomo-controls">
+          <button class="btn-pomo-start" id="btn-pomo-toggle">Start</button>
+          <button class="btn-pomo-reset" id="btn-pomo-reset">Reset</button>
+        </div>
+
+        <div class="pomo-settings">
+          <div class="pomo-setting">
+            <label>Work (min)</label>
+            <input type="number" id="pomo-work" value="25" min="1" max="60"/>
+          </div>
+          <div class="pomo-setting">
+            <label>Break (min)</label>
+            <input type="number" id="pomo-break" value="5" min="1" max="60"/>
+          </div>
+        </div>
+      </div>
+      <div class="pomo-tip">
+        <h3>💡 Pomodoro Technique</h3>
+        <ul>
+          <li>Work focused for 25 minutes</li>
+          <li>Take a 5-minute break</li>
+          <li>After 4 sessions, take a 15–30 min long break</li>
+          <li>Repeat to maximise productivity</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════ UTILS ═══════════════
+function $(id) { return document.getElementById(id); }
+function sha256(str) {
+  // Simple hash for demo — uses SubtleCrypto
+  const enc = new TextEncoder().encode(str);
+  return crypto.subtle.digest('SHA-256', enc).then(buf =>
+    Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('')
+  );
+}
+
+// ═══════════════ STORAGE ═══════════════
+const LS = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k,v) { localStorage.setItem(k, JSON.stringify(v)); },
+};
+
+// ═══════════════ STATE ═══════════════
+let currentUser = null;
+let tasks = [];
+let goals = [];
+let activeFilter = 'all';
+let isRegMode = false;
+
+// ═══════════════ AUTH ═══════════════
+function initAuth() {
+  // Check saved session
+  const sess = LS.get('sp_session');
+  if (sess && sess.email) {
+    loginUser(sess.email);
+    return;
+  }
+  $('auth-screen').style.display = 'flex';
+}
+
+function setAuthMode(reg) {
+  isRegMode = reg;
+  $('auth-title').textContent = reg ? 'Create Account' : 'Welcome Back';
+  $('btn-auth-submit').textContent = reg ? 'Create Account' : 'Sign In';
+  $('auth-mode-text').textContent = reg ? 'Already have an account? ' : 'New here? ';
+  $('auth-toggle').textContent = reg ? 'Sign In' : 'Create Account';
+  $('field-confirm').classList.toggle('hidden', !reg);
+  $('auth-error').classList.add('hidden');
+}
+
+$('auth-toggle').onclick = () => setAuthMode(!isRegMode);
+
+$('btn-auth-submit').onclick = async () => {
+  const email = $('inp-email').value.trim();
+  const pw = $('inp-password').value;
+  const confirm = $('inp-confirm').value;
+  const errEl = $('auth-error');
+  errEl.classList.add('hidden');
+
+  if (!email.includes('@')) return showAuthErr('Enter a valid email address.');
+  if (pw.length < 6) return showAuthErr('Password must be at least 6 characters.');
+
+  const users = LS.get('sp_users') || {};
+
+  if (isRegMode) {
+    if (pw !== confirm) return showAuthErr("Passwords don't match.");
+    if (users[email]) return showAuthErr('Email already registered. Please sign in.');
+    const hash = await sha256(pw);
+    users[email] = { hash, created: Date.now() };
+    LS.set('sp_users', users);
+    LS.set('sp_session', { email });
+    loginUser(email);
+  } else {
+    if (!users[email]) return showAuthErr('No account found. Please create one.');
+    const hash = await sha256(pw);
+    if (users[email].hash !== hash) return showAuthErr('Incorrect password.');
+    LS.set('sp_session', { email });
+    loginUser(email);
+  }
+};
+
+// Allow Enter key
+['inp-email','inp-password','inp-confirm'].forEach(id => {
+  $(id).addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-auth-submit').click(); });
+});
+
+function showAuthErr(msg) {
+  const el = $('auth-error');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+function loginUser(email) {
+  currentUser = email;
+  $('auth-screen').style.display = 'none';
+  $('app-screen').style.display = 'block';
+  $('user-email-display').textContent = email;
+  $('user-avatar').textContent = email[0].toUpperCase();
+  tasks = LS.get(`sp_tasks_${email}`) || [];
+  goals = LS.get(`sp_goals_${email}`) || [];
+  renderTasks();
+  renderGoals();
+}
+
+$('btn-logout').onclick = () => {
+  LS.set('sp_session', null);
+  currentUser = null;
+  tasks = []; goals = [];
+  $('app-screen').style.display = 'none';
+  $('inp-email').value = ''; $('inp-password').value = ''; $('inp-confirm').value = '';
+  setAuthMode(false);
+  $('auth-screen').style.display = 'flex';
+};
+
+// ═══════════════ TABS ═══════════════
+document.querySelectorAll('.nav-tab').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ['tasks','goals','pomodoro'].forEach(t => $(`tab-${t}`).classList.add('hidden'));
+    $(`tab-${btn.dataset.tab}`).classList.remove('hidden');
+  };
+});
+
+// ═══════════════ TASKS ═══════════════
+function saveTasks() { LS.set(`sp_tasks_${currentUser}`, tasks); }
+
+function renderTasks() {
+  // Stats
+  const total = tasks.length, done = tasks.filter(t=>t.done).length;
+  const pending = total - done, pct = total ? Math.round(done/total*100) : 0;
+  $('stats-grid').innerHTML = [
+    { label:'Total Tasks', val:total, color:'var(--accent)' },
+    { label:'Completed', val:done, color:'var(--teal)' },
+    { label:'Pending', val:pending, color:'var(--coral)' },
+    { label:'Progress', val:pct+'%', color:'var(--gold)' },
+  ].map(s => `
+    <div class="stat-card">
+      <div class="val" style="color:${s.color}">${s.val}</div>
+      <div class="lbl">${s.label}</div>
+    </div>`).join('');
+
+  $('prog-pct').textContent = pct + '%';
+  $('prog-fill').style.width = pct + '%';
+
+  // Filter
+  let list = tasks.filter(t => {
+    if (activeFilter === 'done') return t.done;
+    if (activeFilter === 'pending') return !t.done;
+    if (activeFilter === 'high') return t.priority === 'high' && !t.done;
+    return true;
+  });
+
+  if (list.length === 0) {
+    $('task-list').innerHTML = `<div class="empty">
+      <svg width="40" height="40" fill="none" stroke="var(--muted)" stroke-width="1.5" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <p>No tasks here. Add one above!</p></div>`;
+    return;
+  }
+
+  $('task-list').innerHTML = list.map(t => `
+    <div class="task-item ${t.done?'done':''}" data-id="${t.id}">
+      <button class="task-check ${t.done?'checked':''}" onclick="toggleTask(${t.id})">
+        ${t.done ? `<svg width="14" height="14" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+      </button>
+      <div class="task-body">
+        <div class="task-subject ${t.done?'done-text':''}">
+          ${t.subject}
+          <span class="badge badge-${t.priority}">${t.priority==='high'?'High':t.priority==='medium'?'Med':'Low'}</span>
+        </div>
+        ${t.desc ? `<div class="task-desc">${t.desc}</div>` : ''}
+        ${t.date ? `<div class="task-date">📅 ${t.date}</div>` : ''}
+      </div>
+      <button class="btn-delete" onclick="deleteTask(${t.id})">
+        <svg width="16" height="16" fill="none" stroke="var(--coral)" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+        </svg>
+      </button>
+    </div>`).join('');
+}
+
+window.toggleTask = function(id) {
+  tasks = tasks.map(t => t.id===id ? {...t, done:!t.done} : t);
+  saveTasks(); renderTasks();
+};
+window.deleteTask = function(id) {
+  tasks = tasks.filter(t => t.id!==id);
+  saveTasks(); renderTasks();
+};
+
+// Filter buttons
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    renderTasks();
+  };
+});
+
+// Task form
+$('btn-show-task-form').onclick = () => $('task-form').classList.toggle('hidden');
+$('btn-cancel-task').onclick = () => $('task-form').classList.add('hidden');
+$('btn-save-task').onclick = () => {
+  const subj = $('tf-subject').value.trim();
+  if (!subj) return;
+  tasks.push({ id: Date.now(), subject: subj, desc: $('tf-desc').value.trim(), date: $('tf-date').value, priority: $('tf-priority').value, done: false });
+  saveTasks(); renderTasks();
+  $('tf-subject').value = ''; $('tf-desc').value = ''; $('tf-date').value = ''; $('tf-priority').value = 'medium';
+  $('task-form').classList.add('hidden');
+};
+
+// ═══════════════ GOALS ═══════════════
+function saveGoals() { LS.set(`sp_goals_${currentUser}`, goals); }
+
+function renderGoals() {
+  if (goals.length === 0) {
+    $('goal-list').innerHTML = `<div class="empty">
+      <svg width="40" height="40" fill="none" stroke="var(--muted)" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      <p>No goals yet. Set one to get started!</p></div>`;
+    return;
+  }
+  $('goal-list').innerHTML = goals.map(g => `
+    <div class="goal-card">
+      <div class="goal-header">
+        <div>
+          <div class="goal-title">${g.title}</div>
+          ${g.target ? `<div class="goal-target">🎯 ${g.target}</div>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="goal-pct" id="gpct-${g.id}">${g.progress}%</div>
+          <button class="btn-delete" onclick="deleteGoal(${g.id})">
+            <svg width="14" height="14" fill="none" stroke="var(--coral)" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="goal-track"><div class="goal-fill" id="gfill-${g.id}" style="width:${g.progress}%"></div></div>
+      <div class="goal-slider-row">
+        <span>Progress:</span>
+        <input type="range" min="0" max="100" value="${g.progress}" oninput="updateGoal(${g.id},this.value)"/>
+      </div>
+    </div>`).join('');
+}
+
+window.updateGoal = function(id, val) {
+  goals = goals.map(g => g.id===id ? {...g, progress:Number(val)} : g);
+  saveGoals();
+  const gf = $(`gfill-${id}`); if (gf) gf.style.width = val + '%';
+  const gp = $(`gpct-${id}`); if (gp) gp.textContent = val + '%';
+};
+window.deleteGoal = function(id) {
+  goals = goals.filter(g => g.id!==id);
+  saveGoals(); renderGoals();
+};
+
+$('btn-show-goal-form').onclick = () => $('goal-form').classList.toggle('hidden');
+$('btn-cancel-goal').onclick = () => $('goal-form').classList.add('hidden');
+$('btn-save-goal').onclick = () => {
+  const title = $('gf-title').value.trim();
+  if (!title) return;
+  goals.push({ id: Date.now(), title, target: $('gf-target').value.trim(), progress: 0 });
+  saveGoals(); renderGoals();
+  $('gf-title').value = ''; $('gf-target').value = '';
+  $('goal-form').classList.add('hidden');
+};
+
+// ═══════════════ POMODORO ═══════════════
+let pomoRunning = false, pomoIsBreak = false, pomoSecs = 25*60, pomoSessions = 0, pomoInterval = null;
+
+const CIRC = 2 * Math.PI * 70; // 439.82
+
+function updatePomoDisplay() {
+  const total = (pomoIsBreak ? +$('pomo-break').value : +$('pomo-work').value) * 60;
+  const elapsed = total - pomoSecs;
+  const pct = total > 0 ? elapsed / total : 0;
+  const offset = CIRC * (1 - pct);
+  const mm = String(Math.floor(pomoSecs/60)).padStart(2,'0');
+  const ss = String(pomoSecs%60).padStart(2,'0');
+  $('pomo-display').textContent = `${mm}:${ss}`;
+  $('pomo-mode').textContent = pomoIsBreak ? 'Break' : 'Focus';
+  $('pomo-ring').style.strokeDashoffset = offset;
+  $('pomo-ring').style.stroke = pomoIsBreak ? 'var(--teal)' : 'var(--accent)';
+  $('pomo-sessions').textContent = pomoSessions;
+}
+
+$('btn-pomo-toggle').onclick = () => {
+  pomoRunning = !pomoRunning;
+  $('btn-pomo-toggle').textContent = pomoRunning ? 'Pause' : 'Start';
+  $('btn-pomo-toggle').classList.toggle('pause', pomoRunning);
+  if (pomoRunning) {
+    pomoInterval = setInterval(() => {
+      pomoSecs--;
+      if (pomoSecs <= 0) {
+        if (!pomoIsBreak) pomoSessions++;
+        pomoIsBreak = !pomoIsBreak;
+        pomoSecs = (pomoIsBreak ? +$('pomo-break').value : +$('pomo-work').value) * 60;
+        pomoRunning = false;
+        clearInterval(pomoInterval);
+        $('btn-pomo-toggle').textContent = 'Start';
+        $('btn-pomo-toggle').classList.remove('pause');
+      }
+      updatePomoDisplay();
+    }, 1000);
+  } else {
+    clearInterval(pomoInterval);
+  }
+};
+
+$('btn-pomo-reset').onclick = () => {
+  clearInterval(pomoInterval);
+  pomoRunning = false; pomoIsBreak = false;
+  pomoSecs = +$('pomo-work').value * 60;
+  $('btn-pomo-toggle').textContent = 'Start';
+  $('btn-pomo-toggle').classList.remove('pause');
+  updatePomoDisplay();
+};
+
+['pomo-work','pomo-break'].forEach(id => {
+  $(id).addEventListener('change', () => {
+    if (!pomoRunning) {
+      pomoSecs = +$('pomo-work').value * 60;
+      updatePomoDisplay();
+    }
+  });
+});
+
+// ═══════════════ INIT ═══════════════
+updatePomoDisplay();
+initAuth();
+</script>
+</body>
+</html>
